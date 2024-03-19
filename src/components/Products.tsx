@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import {
   Box,
   Card,
@@ -13,47 +13,76 @@ import {
 import RemoveIcon from "@mui/icons-material/Remove";
 import AddIcon from "@mui/icons-material/Add";
 import { HeavyComponent } from "./HeavyComponent.tsx";
+import Api from "../api/index.ts";
+import { GetProducts } from "../api/getProducts/interfaces.ts";
+import { useDispatch, useSelector } from "react-redux";
+import { TState } from "../store/index.ts";
+import AppReducerActions from "../store/Actions/AppReducer/index.ts";
+import { ICart, IProduct } from "../interfaces.ts";
+import { PostAddToCart } from "../api/postAddToCart/interfaces.ts";
 
-export type Product = {
-  id: number;
-  name: string;
-  imageUrl: string;
-  price: number;
-  category: string;
-  itemInCart: number;
-  loading: boolean;
-};
-
-export type Cart = {
-  items: Product[];
-  totalPrice: number;
-  totalItems: number;
-};
-export const Products = ({
-  onCartChange,
-}: {
-  onCartChange: (cart: Cart) => void;
-}) => {
-  const [products, setProducts] = useState<Product[]>([]);
+export const Products = () => {
+  const dispatch = useDispatch();
+  const appData = useSelector((state: TState) => state.app);
+  const { isLoading, products, page } = appData;
   const LIMIT = 20;
-  const [page, setPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
 
   const callGetProducts = useCallback(async () => {
     try {
-      setIsLoading(false);
-      const res = await fetch(`/products?limit=${LIMIT}&page=${page}`);
-      const data = await res.json();
-      const { products } = data;
-      setProducts((prev) => [...prev, ...products]);
+      dispatch(AppReducerActions.callGetProductsAction());
+      const payload: GetProducts.Payload = {
+        page,
+        limit: LIMIT,
+      };
+      const res = await Api.getProducts(payload);
+      const { data } = res;
+      const responseProducts = data.products;
+      const newItems = [...new Set([...products, ...responseProducts])];
+      dispatch(AppReducerActions.updateProducts([...newItems]));
     } catch (e) {
       //error handling
     }
-  }, [page]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, page]);
 
-  const handleBottomPage = () => {
-    setPage((prev) => prev + 1);
-    setIsLoading(true);
+  const callPostAddToCart = async (product: IProduct, quantity: number) => {
+    try {
+      const body: PostAddToCart.Body = {
+        productId: product.id,
+        quantity,
+      };
+      const res = await Api.postAddToCart(body);
+      const { data } = res;
+      const newProd: typeof product = {
+        ...product,
+        loading: false,
+        itemInCart: (product.itemInCart || 0) + quantity,
+      };
+      dispatch(AppReducerActions.updateProduct(newProd));
+      onCartChange(data);
+    } catch (e) {
+      //handling error
+    }
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handleBottomPage = useCallback(() => {
+    dispatch(AppReducerActions.updatePage(page + 1));
+  }, [page, dispatch]);
+
+  const onCartChange = (cart: ICart) => {
+    dispatch(AppReducerActions.updateCart(cart));
+  };
+
+  const addToCart = async (productId: number, quantity: number) => {
+    const currentProduct = products.find((prod) => prod.id === productId);
+    if (!currentProduct) return;
+    const newProd: typeof currentProduct = {
+      ...currentProduct,
+      loading: true,
+    };
+    dispatch(AppReducerActions.updateProduct(newProd));
+    await callPostAddToCart(newProd, quantity);
   };
 
   // handle infinite Scroll without any other components
@@ -67,55 +96,18 @@ export const Products = ({
     return () => {
       window.removeEventListener("scroll", onscroll);
     };
-  }, []);
+  });
 
   useEffect(() => {
     callGetProducts();
-  }, [callGetProducts]);
-
-  function addToCart(productId: number, quantity: number) {
-    setProducts(
-      products.map((product) => {
-        if (product.id === productId) {
-          return {
-            ...product,
-            loading: true,
-          };
-        }
-        return product;
-      })
-    );
-    fetch("/cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ productId, quantity }),
-    }).then(async (response) => {
-      if (response.ok) {
-        const cart = await response.json();
-        setProducts(
-          products.map((product) => {
-            if (product.id === productId) {
-              return {
-                ...product,
-                itemInCart: (product.itemInCart || 0) + quantity,
-                loading: false,
-              };
-            }
-            return product;
-          })
-        );
-        onCartChange(cart);
-      }
-    });
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   return (
-    <Box overflow="scroll" height="100%">
+    <Box overflow="auto" height="100%">
       <Grid container spacing={2} p={2}>
-        {products.map((product) => (
-          <Grid item xs={4}>
+        {products.map((product, index) => (
+          <Grid item xs={4} key={index}>
             {/* Do not remove this */}
             <HeavyComponent />
             <Card key={product.id} style={{ width: "100%" }}>
@@ -181,7 +173,13 @@ export const Products = ({
         ))}
       </Grid>
       {isLoading && (
-        <Grid container justifyContent="center">
+        <Grid
+          container
+          justifyContent="center"
+          sx={{
+            my: 5,
+          }}
+        >
           <CircularProgress />
         </Grid>
       )}
