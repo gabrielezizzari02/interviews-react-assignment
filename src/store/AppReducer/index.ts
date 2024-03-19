@@ -6,6 +6,7 @@ export const initialState: AppReducer.State = {
   products: [],
   cartProducts: [],
   quantity: 0,
+  hasProductsFinished: false,
   price: 0,
 };
 
@@ -24,8 +25,9 @@ const appReducer = (
     case AppReducer.EActionType.UPDATE_PRODUCTS: {
       const newState: AppReducer.State = {
         ...state,
-        products: action.data,
+        products: action.data.products,
         isLoading: false,
+        hasProductsFinished: !action.data.hasMore,
       };
       return { ...newState };
     }
@@ -49,6 +51,14 @@ const appReducer = (
       newState.cartProducts = items;
       newState.price = totalPrice;
       newState.quantity = totalItems;
+      return { ...newState };
+    }
+    case AppReducer.EActionType.UPDATE_CATEGORY: {
+      const newState = { ...state };
+      newState.category = action.data;
+      newState.hasProductsFinished = false;
+      newState.page = 0;
+      newState.products = [];
       return { ...newState };
     }
     default:

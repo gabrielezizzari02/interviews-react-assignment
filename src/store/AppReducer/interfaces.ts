@@ -8,6 +8,8 @@ export namespace AppReducer {
     page: number;
     quantity: number;
     price: number;
+    category?: string;
+    hasProductsFinished: boolean;
     error?: number;
   }
 
@@ -17,7 +19,7 @@ export namespace AppReducer {
       }
     | {
         type: EActionType.UPDATE_PRODUCTS;
-        data: State["products"];
+        data: { products: State["products"]; hasMore: boolean };
       }
     | {
         type: EActionType.UPDATE_PRODUCT;
@@ -30,6 +32,10 @@ export namespace AppReducer {
     | {
         type: EActionType.UPDATE_CART;
         data: ICart;
+      }
+    | {
+        type: EActionType.UPDATE_CATEGORY;
+        data: string;
       };
 
   export enum EActionType {
@@ -38,5 +44,6 @@ export namespace AppReducer {
     UPDATE_PRODUCT = "updateProduct",
     UDPATE_PAGE = "updatePage",
     UPDATE_CART = "updateCart",
+    UPDATE_CATEGORY = "updateCategory",
   }
 }

@@ -20,30 +20,35 @@ import { TState } from "../store/index.ts";
 import AppReducerActions from "../store/Actions/AppReducer/index.ts";
 import { ICart, IProduct } from "../interfaces.ts";
 import { PostAddToCart } from "../api/postAddToCart/interfaces.ts";
+import { AppReducer } from "../store/AppReducer/interfaces.ts";
 
 export const Products = () => {
   const dispatch = useDispatch();
-  const appData = useSelector((state: TState) => state.app);
-  const { isLoading, products, page } = appData;
+  const appData: AppReducer.State = useSelector(
+    (state: TState) => state.app
+  ) as TState["app"];
+  const { isLoading, products, page, category, hasProductsFinished } = appData;
   const LIMIT = 20;
 
   const callGetProducts = useCallback(async () => {
     try {
+      if (isLoading) return;
       dispatch(AppReducerActions.callGetProductsAction());
       const payload: GetProducts.Payload = {
         page,
         limit: LIMIT,
+        category,
       };
       const res = await Api.getProducts(payload);
       const { data } = res;
       const responseProducts = data.products;
       const newItems = [...new Set([...products, ...responseProducts])];
-      dispatch(AppReducerActions.updateProducts([...newItems]));
+      dispatch(AppReducerActions.updateProducts([...newItems], data.hasMore));
     } catch (e) {
       //error handling
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, page]);
+  }, [dispatch, page, category]);
 
   const callPostAddToCart = async (product: IProduct, quantity: number) => {
     try {
@@ -75,7 +80,9 @@ export const Products = () => {
   };
 
   const addToCart = async (productId: number, quantity: number) => {
-    const currentProduct = products.find((prod) => prod.id === productId);
+    const currentProduct = products.find(
+      (prod: IProduct) => prod.id === productId
+    );
     if (!currentProduct) return;
     const newProd: typeof currentProduct = {
       ...currentProduct,
@@ -90,7 +97,7 @@ export const Products = () => {
     const onscroll = () => {
       const scrolledTo = window.scrollY + window.innerHeight;
       const isReachBottom = document.body.scrollHeight === scrolledTo;
-      if (isReachBottom) handleBottomPage();
+      if (isReachBottom && !hasProductsFinished) handleBottomPage();
     };
     window.addEventListener("scroll", onscroll);
     return () => {
@@ -101,12 +108,12 @@ export const Products = () => {
   useEffect(() => {
     callGetProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, category]);
 
   return (
     <Box overflow="auto" height="100%">
       <Grid container spacing={2} p={2}>
-        {products.map((product, index) => (
+        {products.map((product: IProduct, index: number) => (
           <Grid item xs={4} key={index}>
             {/* Do not remove this */}
             <HeavyComponent />

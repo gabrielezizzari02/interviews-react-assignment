@@ -7,10 +7,16 @@ const callGetProductsAction = (): AppReducer.Action => {
   };
 };
 
-const updateProducts = (products: IProduct[]): AppReducer.Action => {
+const updateProducts = (
+  products: IProduct[],
+  hasMore: boolean
+): AppReducer.Action => {
   return {
     type: AppReducer.EActionType.UPDATE_PRODUCTS,
-    data: products,
+    data: {
+      products,
+      hasMore,
+    },
   };
 };
 
@@ -35,12 +41,20 @@ const updateCart = (cart: ICart): AppReducer.Action => {
   };
 };
 
+const updateCategory = (category: string) => {
+  return {
+    type: AppReducer.EActionType.UPDATE_CATEGORY,
+    data: category,
+  };
+};
+
 const AppReducerActions = {
   callGetProductsAction,
   updateProducts,
   updateProduct,
   updatePage,
   updateCart,
+  updateCategory,
 };
 
 export default AppReducerActions;
