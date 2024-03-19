@@ -7,8 +7,11 @@ import InputBase from "@mui/material/InputBase";
 import SearchIcon from "@mui/icons-material/Search";
 import { Badge } from "@mui/material";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { TState } from "../store";
+import useDebounce from "../hooks/useDebounce";
+import { useEffect, useState } from "react";
+import AppReducerActions from "../store/Actions/AppReducer";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -55,6 +58,14 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 
 export default function SearchAppBar() {
   const { price, quantity } = useSelector((state: TState) => state.app);
+  const dispatch = useDispatch();
+  const [searchInput, setSearchInput] = useState("");
+  const valueDebounce = useDebounce(searchInput);
+
+  useEffect(() => {
+    dispatch(AppReducerActions.updateInputSearch(valueDebounce));
+  }, [dispatch, valueDebounce]);
+
   return (
     <Box>
       <AppBar position="relative">
@@ -72,6 +83,8 @@ export default function SearchAppBar() {
               <SearchIcon />
             </SearchIconWrapper>
             <StyledInputBase
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search…"
               inputProps={{ "aria-label": "search" }}
             />

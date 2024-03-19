@@ -11,6 +11,7 @@ export namespace AppReducer {
     category?: string;
     hasProductsFinished: boolean;
     error?: number;
+    searchInput?: string;
   }
 
   export type Action =
@@ -36,6 +37,10 @@ export namespace AppReducer {
     | {
         type: EActionType.UPDATE_CATEGORY;
         data: string;
+      }
+    | {
+        type: EActionType.UPDATE_SEARCH_INPUT;
+        data: string;
       };
 
   export enum EActionType {
@@ -45,5 +50,6 @@ export namespace AppReducer {
     UDPATE_PAGE = "updatePage",
     UPDATE_CART = "updateCart",
     UPDATE_CATEGORY = "updateCategory",
+    UPDATE_SEARCH_INPUT = "updateSearchInput",
   }
 }

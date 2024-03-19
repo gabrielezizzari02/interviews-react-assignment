@@ -48,6 +48,13 @@ const updateCategory = (category: string) => {
   };
 };
 
+const updateInputSearch = (value: string): AppReducer.Action => {
+  return {
+    type: AppReducer.EActionType.UPDATE_SEARCH_INPUT,
+    data: value,
+  };
+};
+
 const AppReducerActions = {
   callGetProductsAction,
   updateProducts,
@@ -55,6 +62,7 @@ const AppReducerActions = {
   updatePage,
   updateCart,
   updateCategory,
+  updateInputSearch,
 };
 
 export default AppReducerActions;

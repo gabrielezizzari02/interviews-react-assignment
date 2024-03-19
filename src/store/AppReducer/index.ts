@@ -55,8 +55,16 @@ const appReducer = (
     }
     case AppReducer.EActionType.UPDATE_CATEGORY: {
       const newState = { ...state };
-      newState.category = action.data;
+      newState.category =
+        action.data === newState.category ? undefined : action.data;
       newState.hasProductsFinished = false;
+      newState.page = 0;
+      newState.products = [];
+      return { ...newState };
+    }
+    case AppReducer.EActionType.UPDATE_SEARCH_INPUT: {
+      const newState = { ...state };
+      newState.searchInput = action.data.length === 0 ? undefined : action.data;
       newState.page = 0;
       newState.products = [];
       return { ...newState };

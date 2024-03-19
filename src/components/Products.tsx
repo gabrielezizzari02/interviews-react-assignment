@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   Box,
   Card,
@@ -23,11 +23,19 @@ import { PostAddToCart } from "../api/postAddToCart/interfaces.ts";
 import { AppReducer } from "../store/AppReducer/interfaces.ts";
 
 export const Products = () => {
+  const componentRef = useRef<HTMLElement>();
   const dispatch = useDispatch();
   const appData: AppReducer.State = useSelector(
     (state: TState) => state.app
   ) as TState["app"];
-  const { isLoading, products, page, category, hasProductsFinished } = appData;
+  const {
+    isLoading,
+    products,
+    page,
+    category,
+    hasProductsFinished,
+    searchInput,
+  } = appData;
   const LIMIT = 20;
 
   const callGetProducts = useCallback(async () => {
@@ -38,6 +46,7 @@ export const Products = () => {
         page,
         limit: LIMIT,
         category,
+        q: searchInput,
       };
       const res = await Api.getProducts(payload);
       const { data } = res;
@@ -48,7 +57,7 @@ export const Products = () => {
       //error handling
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, page, category]);
+  }, [dispatch, page, category, searchInput]);
 
   const callPostAddToCart = async (product: IProduct, quantity: number) => {
     try {
@@ -94,24 +103,28 @@ export const Products = () => {
 
   // handle infinite Scroll without any other components
   useEffect(() => {
+    if (!componentRef.current) return;
     const onscroll = () => {
-      const scrolledTo = window.scrollY + window.innerHeight;
-      const isReachBottom = document.body.scrollHeight === scrolledTo;
+      if (!componentRef.current) return;
+      const scrolledTo =
+        componentRef.current.scrollTop + componentRef.current.clientHeight;
+      const isReachBottom = componentRef.current.scrollHeight === scrolledTo;
       if (isReachBottom && !hasProductsFinished) handleBottomPage();
     };
-    window.addEventListener("scroll", onscroll);
+    componentRef.current.addEventListener("scroll", onscroll);
     return () => {
-      window.removeEventListener("scroll", onscroll);
+      if (!componentRef.current) return;
+      componentRef.current.removeEventListener("scroll", onscroll);
     };
   });
 
   useEffect(() => {
     callGetProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, category]);
+  }, [page, category, searchInput]);
 
   return (
-    <Box overflow="auto" height="100%">
+    <Box overflow="scroll" height="100%" ref={componentRef}>
       <Grid container spacing={2} p={2}>
         {products.map((product: IProduct, index: number) => (
           <Grid item xs={4} key={index}>
