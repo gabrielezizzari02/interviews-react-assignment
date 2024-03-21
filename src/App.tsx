@@ -1,4 +1,4 @@
-import { Products } from "./components/Products.tsx";
+import { Products } from "./components/Products";
 import { Box, CssBaseline } from "@mui/material";
 import SearchAppBar from "./components/SearchAppBar.tsx";
 import { Categories } from "./components/Categories.tsx";
