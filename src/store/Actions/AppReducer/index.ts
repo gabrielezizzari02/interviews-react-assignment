@@ -55,6 +55,21 @@ const updateInputSearch = (value: string): AppReducer.Action => {
   };
 };
 
+const updateCartPrice = (
+  id: number,
+  price: number,
+  quantity: number
+): AppReducer.Action => {
+  return {
+    type: AppReducer.EActionType.UPDATE_CART_PRICE,
+    data: {
+      id,
+      price,
+      quantity,
+    },
+  };
+};
+
 const AppReducerActions = {
   callGetProductsAction,
   updateProducts,
@@ -63,6 +78,7 @@ const AppReducerActions = {
   updateCart,
   updateCategory,
   updateInputSearch,
+  updateCartPrice,
 };
 
 export default AppReducerActions;

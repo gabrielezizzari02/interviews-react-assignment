@@ -57,7 +57,9 @@ const StyledInputBase = styled(InputBase)(({ theme }) => ({
 }));
 
 export default function SearchAppBar() {
-  const { price, quantity } = useSelector((state: TState) => state.app);
+  const { price, quantity, isPriceLoading } = useSelector(
+    (state: TState) => state.app
+  );
   const dispatch = useDispatch();
   const [searchInput, setSearchInput] = useState("");
   const valueDebounce = useDebounce(searchInput);
@@ -97,7 +99,10 @@ export default function SearchAppBar() {
               $ {(price || 0).toFixed(2)}
             </Typography>
           </Box>
-          <Badge badgeContent={quantity || 0} color="secondary">
+          <Badge
+            badgeContent={quantity || 0}
+            color={isPriceLoading ? "warning" : "success"}
+          >
             <ShoppingCartIcon />
           </Badge>
         </Toolbar>
