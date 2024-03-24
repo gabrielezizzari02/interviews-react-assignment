@@ -37,7 +37,6 @@ const appReducer = (
       const newProds = [...newState.products].map((prod) =>
         prod.id === action.data.id ? action.data : prod
       );
-      newState.isPriceLoading = newState.lastItemClicked !== action.data.id;
       return { ...newState, products: newProds };
     }
     case AppReducer.EActionType.UDPATE_PAGE: {
@@ -51,6 +50,18 @@ const appReducer = (
       const { items, totalItems, totalPrice } = action.data;
       const newState = { ...state };
       newState.cartProducts = items;
+      newState.products = [...newState.products].map((item) => {
+        const index = items.findIndex(
+          (indexItem) => indexItem.product.id === item.id
+        );
+        return index !== -1
+          ? {
+              ...item,
+              loading: false,
+              itemInCart: items[index].quantity,
+            }
+          : item;
+      });
       newState.price = totalPrice;
       newState.isPriceLoading = false;
       newState.lastItemClicked = undefined;

@@ -1,4 +1,10 @@
-import React, { Suspense, useCallback, useEffect, useRef } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Box, Grid, CircularProgress } from "@mui/material";
 import Api from "../../api/index.ts";
 import { GetProducts } from "../../api/getProducts/interfaces.ts";
@@ -7,9 +13,16 @@ import { TState } from "../../store/index.ts";
 import AppReducerActions from "../../store/Actions/AppReducer/index.ts";
 import { AppReducer } from "../../store/AppReducer/interfaces.ts";
 import LoadingProduct from "./components/LoadingProduct.tsx";
+import { ICart, IProduct } from "../../interfaces.ts";
+import { PostAddToCart } from "../../api/postAddToCart/interfaces.ts";
+import _ from "lodash";
 const Product = React.lazy(() => import("./components/Product.tsx"));
 
 export const Products = () => {
+  const [cartData, setCartData] = useState<
+    PostAddToCart.Response | undefined
+  >();
+  const [product, setProduct] = useState<IProduct | undefined>(undefined);
   const componentRef = useRef<HTMLElement>();
   const dispatch = useDispatch();
   const appData: AppReducer.State = useSelector(
@@ -21,6 +34,8 @@ export const Products = () => {
     category,
     hasProductsFinished,
     searchInput,
+    isPriceLoading,
+    price,
     products,
   } = appData;
   const LIMIT = 20;
@@ -46,6 +61,58 @@ export const Products = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, page, category, searchInput]);
 
+  const callPostAddToCart = async (product: IProduct, quantity: number) => {
+    try {
+      const resCheck = await Api.getCart();
+      const { data: dataCheck } = resCheck;
+      const previousQuantity = dataCheck.items.find(
+        (item) => item.product.id === product.id
+      );
+      const diffQuantity = quantity - (previousQuantity?.quantity || 0);
+      const body: PostAddToCart.Body = {
+        productId: product.id,
+        quantity: diffQuantity,
+      };
+      const res = await Api.postAddToCart(body);
+      const { data } = res;
+      // const newProd: typeof product = {
+      //   ...product,
+      // };
+      // dispatch(AppReducerActions.updateProduct(product));
+      setCartData(data);
+    } catch (e) {
+      // handle error
+    }
+  };
+
+  const addToCart = (productId: number, quantity: number) => {
+    const currentProduct = products.find(
+      (prod: IProduct) => prod.id === productId
+    );
+    if (!currentProduct) return;
+    const newProd: typeof currentProduct = {
+      ...currentProduct,
+      itemInCart: (currentProduct.itemInCart || 0) + quantity,
+    };
+    setProduct(currentProduct);
+    dispatch(AppReducerActions.updateProduct(newProd));
+    dispatch(
+      AppReducerActions.updateCartPrice(
+        newProd.id,
+        newProd.price * quantity,
+        quantity
+      )
+    );
+    //callPostAddToCart(newProd, quantity);
+  };
+
+  const onCartChange = (cart: ICart) => {
+    dispatch(AppReducerActions.updateCart(cart));
+  };
+
+  const debouncedCartChange = _.debounce(onCartChange, 500);
+  const debouncePostAddToCart = _.debounce(callPostAddToCart, 500);
+
   const handleBottomPage = useCallback(() => {
     dispatch(AppReducerActions.updatePage(page + 1));
   }, [page, dispatch]);
@@ -68,17 +135,43 @@ export const Products = () => {
   });
 
   useEffect(() => {
+    const fixedPrice = price.toFixed(2);
+    const fixedCart = cartData?.totalPrice.toFixed(2);
+    if (!cartData || fixedCart !== fixedPrice) return;
+    cartData.totalPrice = Number(fixedCart);
+    debouncedCartChange(cartData);
+    () => {
+      if (cartData?.totalPrice !== price) {
+        debouncedCartChange.cancel();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartData?.totalPrice, cartData?.totalItems, isPriceLoading]);
+
+  useEffect(() => {
+    const currentProduct = products.find((item) => item.id === product?.id);
+    if (!currentProduct || !product) return;
+    debouncePostAddToCart(product, currentProduct.itemInCart);
+    return () => {
+      debouncePostAddToCart.cancel();
+    };
+  }, [product?.id, product?.itemInCart]);
+
+  useEffect(() => {
     callGetProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, category, searchInput]);
 
   return (
-    <Box overflow="auto" height="100%" ref={componentRef}>
+    <Box overflow="scroll" height="100%" ref={componentRef}>
       {products.length !== 0 && (
-        <Grid container spacing={2} p={2}>
+        <Grid container spacing={2} p={2} height="100%" width="100%">
           {products.map((product) => (
-            <Suspense fallback={<LoadingProduct />} key={product.id}>
-              <Product data={product} />
+            <Suspense
+              fallback={<LoadingProduct />}
+              key={`${product.id}${product.itemInCart}`}
+            >
+              <Product data={product} addToCart={addToCart} />
             </Suspense>
           ))}
         </Grid>
